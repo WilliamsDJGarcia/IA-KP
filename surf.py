@@ -9,16 +9,17 @@ def surfApplication(surf,img1,descriptors0):
     global img0
 
     keypoints_surf1, descriptors1 = surf.detectAndCompute(img1, None)
+    print(f'x% {len(keypoints_surf1)}')
 
-    matches(img0,img1,descriptors0,descriptors1)
-  
+    matches(img0,img1,descriptors0,descriptors1) 
 
 def matches(img0,img1,descriptors0,descriptors1):
     bf = cv2.BFMatcher(cv2.NORM_L2,crossCheck=True)
     matches = bf.match(descriptors0,descriptors1)
     matches = sorted(matches, key = lambda x:x.distance)
-  
     match = len(matches)
+    print(f'coindidencia% {match}')
+
     generatePercent(match)
 
 def generatePercent(match):
@@ -40,10 +41,11 @@ def setImgRotation():
     img0 = datoImage() 
     (h,w) = img0.shape[:2]
     center = (w/2,h/2)
-    surf = cv2.xfeatures2d.SURF_create(500)
+    surf = cv2.xfeatures2d.SURF_create(300)
     
     keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
     oneHundred = len(keypoints_surf0)
+    print(f'100% {oneHundred}')
     generatePercent(oneHundred)
     while(count<=finalGrade):
         xs.append(str(count))
@@ -63,13 +65,15 @@ def setImgScale():
     img0 = datoImage()
     img1 = cv2.resize(img0, (int(img0.shape[1]/2), int(img0.shape[0]/2)))
     img2 = cv2.resize(img1, (int(img1.shape[1]/2), int(img1.shape[0]/2)))
-    img3 = cv2.resize(img0, (int(img0.shape[1]*2), int(img0.shape[0]*2)))
+    img3 = cv2.resize(img0, (int(img0.shape[1]*1.5), int(img0.shape[0]*1.5)))
+    img4 = cv2.resize(img0, (int(img0.shape[1]*2), int(img0.shape[0]*2)))
 
     sizes.append(img1)
     sizes.append(img2)
     sizes.append(img3)
+    sizes.append(img4)
    
-    surf = cv2.xfeatures2d.SURF_create(500)
+    surf = cv2.xfeatures2d.SURF_create(300)
     
     keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
     oneHundred = len(keypoints_surf0)
@@ -82,21 +86,98 @@ def setImgScale():
 def setImgDisplacement():
     global img0
     global oneHundred
-    posX = int(ValueX.get())
-    posY = int(ValueY.get())
+    cardinal_points = []
+    count = 0
+    posX=0
+    posY=0
+    posXi = int(ValueX.get())
+    posYi = int(ValueY.get())
 
     img0 = datoImage()
-    (h,w) = img0.shape[:2]
-    m = numpy.float32([[1,0,posX],[0,1,posY]])
-    img1 = cv2.warpAffine(img0, m,(h + posX, w + posY))
-    
-    surf = cv2.xfeatures2d.SURF_create(500)
+
+    surf = cv2.xfeatures2d.SURF_create(300)
    
     keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
     oneHundred = len(keypoints_surf0)
     generatePercent(oneHundred)
+
+    while(count<=7):
+        if count == 0:
+            posX = 0
+            posY = posYi
+
+            north = displacement(surf,img0,descriptors0,posX,posY)
+            cardinal_points.append(north)
+
+            count= count+1
+        if count == 1:
+            posX = -posXi
+            posY = posYi
+
+            northWest = displacement(surf,img0,descriptors0,posX,posY)
+            cardinal_points.append(northWest)
+
+            count= count+1
+        if count == 2:
+            posX = -posXi
+            posY = 0
+
+            west = displacement(surf,img0,descriptors0,posX,posY)
+            cardinal_points.append(west)
+            
+            count= count+1
+        if count == 3:
+            posX = -posXi
+            posY = -posYi
+
+            southWest = displacement(surf,img0,descriptors0,posX,posY)
+            cardinal_points.append(southWest)
+
+            count= count+1
+        if count == 4:
+            posX = 0
+            posY = -posYi
+
+            south = displacement(surf,img0,descriptors0,posX,posY)
+            cardinal_points.append(south)
+
+            count= count+1
+        if count == 5:
+            posX = posXi
+            posY = -posYi
+            
+            southEast = displacement(surf,img0,descriptors0,posX,posY)
+            cardinal_points.append(southEast)
+            
+            count= count+1
+        if count == 6:
+            posX = posXi
+            posY = 0
+
+            east = displacement(surf,img0,descriptors0,posX,posY)
+            cardinal_points.append(east)
+
+            count= count+1 
+        if count == 7:
+            posX = posXi
+            posY = posYi
+
+            northEast = displacement(surf,img0,descriptors0,posX,posY)
+            cardinal_points.append(northEast)
+    
+            count= count+1 
+    print("ACABO")
+    
+    graph(cardinal_points)
+
+def displacement(surf,img0,descriptors0,posX,posY):
+    (h,w) = img0.shape[:2]
+
+    m = numpy.float32([[1,0,posX],[0,1,posY]])
+    img1 = cv2.warpAffine(img0, m,(h + posX, w + posY))
     surfApplication(surf,img1,descriptors0)
-    graph(str(posX)+","+str(posY))
+    print(f'Cardinal {posX} {posY}')
+    return str(posX)+","+str(posY)
 
 def graph(x):
     fig, (ax1) = plt.subplots(nrows=1, ncols=1)
@@ -145,7 +226,7 @@ if __name__ == '__main__':
     img0 = None
     original = []
     percent = []
-    X = ['1/4','1/16','4X']
+    X = ['1/4','1/16','2X','4X']
     O = ['Original']
 
     path = Tk()
