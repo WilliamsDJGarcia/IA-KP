@@ -16,11 +16,12 @@ def surfApplication(surf,img1,trasnform):
         resultx = keypoints_surf1[k].pt[0]-j[0]
         resulty = keypoints_surf1[k].pt[1]-j[1]
         # result = math.pow(math.pow(j[0]-keypoints_surf1[k].pt[0],2)+math.pow(j[1]-keypoints_surf1[k].pt[1],2),1/2)
-        print(f'result X,Y {resultx,resulty}')
-        if ((resultx <= 20 and resultx >=-20) and (resulty <= 20 and resulty >=-20)):
+        # print(f'result X,Y {resultx,resulty}')
+        if ((resultx <= 2 and resultx >=-2) and (resulty <= 2 and resulty >=-2)):
             con = con+1
         else:
             noc = noc+1 
+    generatePercent(con)
     print(f'con {con}')
     print(f'noc {noc}')
 
@@ -34,10 +35,7 @@ def surfApplication(surf,img1,trasnform):
 
 def generatePercent(match):
     z = (match*100)/oneHundred
-    if z == 100.0:
-        original.append(z)
-    else:
-        percent.append(z)
+    percent.append(z)
 
 def setImgRotation():
     global img0
@@ -52,26 +50,28 @@ def setImgRotation():
     img0 = datoImage() 
     (h,w) = img0.shape[:2]
     center = (w/2,h/2)
-    surf = cv2.xfeatures2d.SURF_create(300)
+    surf = cv2.xfeatures2d.SURF_create(500)
     
     keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
     # oneHundred = len(keypoints_surf0)
     # generatePercent(oneHundred)
     while(count<=finalGrade):
         transform = transformOriginal(keypoints_surf0,center,(0,count))
-        # xs.append(str(count))
+        xs.append(str(count))
         m = cv2.getRotationMatrix2D(center,count,1.0)
         img1 = cv2.warpAffine(img0, m, (h, w))
         print(f'GRADOS {count}')
         surfApplication(surf,img1,transform[:100])
+        transform.clear()
         count = count +grade
  
-    # graph(xs)
+    graph(xs)
 
 def setImgScale():
     global img0
     global oneHundred
     sizes = []
+    transform = []
 
     img0 = datoImage()
     img1 = cv2.resize(img0, (int(img0.shape[1]/2), int(img0.shape[0]/2)))
@@ -90,7 +90,8 @@ def setImgScale():
     # oneHundred = len(keypoints_surf0)
     # generatePercent(oneHundred)
     for i in sizes:
-        surfApplication(surf,i,descriptors0)
+        transform = transformOriginal(keypoints_surf0,center,(2,0))
+        surfApplication(surf,i,transform[:100])
 
     # graph(X)
 
@@ -188,7 +189,7 @@ def setImgDisplacement():
             count= count+1 
     print("ACABO")
     
-    # graph(cardinal_points)
+    graph(cardinal_points)
 
 def displacement(surf,img0,transform,posX,posY):
     (h,w) = img0.shape[:2]
@@ -206,7 +207,7 @@ def transformOriginal(keypoints_surf0,param,val):
             x,y = keypoints_surf0[i].pt
             rotatedX = math.cos(val[1]) * (x - param[0]) - math.sin(val[1]) * (y - param[1]) + param[0]
             rotatedY = math.sin(val[1]) * (x - param[0]) + math.cos(val[1]) * (y - param[1]) + param[1]
-
+            
             rotated = rotatedX,rotatedY
             transform.append(rotated)
     if val[0] == 1:
@@ -221,7 +222,14 @@ def transformOriginal(keypoints_surf0,param,val):
            displacement = displacementX,displacementY
         #    print(f"TRANSFORMADOS {displacement}")
            transform.append(displacement)
-#    if val == 2:
+    if val[0] == 2:
+        print(f"AQUÍ VAN LOS TRANSFORMADOS DE REDIMENSION")
+        # for i in range(len(keypoints_surf0)):
+            # x,y = keypoints_surf0[i].pt
+            # newX = x
+            
+            # rotated = rotatedX,rotatedY
+            # transform.append(rotated)
     return transform
 
 def graph(x):
@@ -267,9 +275,11 @@ def menuOptions():
 if __name__ == '__main__':
     grades = 360
     scale = 1.0
-    oneHundred = 0
+    oneHundred = 100
     img0 = None
+    arrayImg = []
     original = []
+    original.append(oneHundred)
     percent = []
     X = ['1/4','1/16','2X','4X']
     O = ['Original']
