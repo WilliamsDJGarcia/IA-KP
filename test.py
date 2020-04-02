@@ -5,10 +5,11 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 import matplotlib.pyplot as plt
+from matplotlib.patches import ConnectionPatch
 
 def surfApplication(surf,img1,Origintrasnform): 
-    matches = []
-    bestMatch = []
+    KPmatches = []
+    KPoriginOK = []
     con=0
     noc=0
 
@@ -19,20 +20,41 @@ def surfApplication(surf,img1,Origintrasnform):
         y1 = j[1]
         x2 = keypoints_surf1[k].pt[0]
         y2 = keypoints_surf1[k].pt[1]
-        # resultx = x1-x2
-        # resulty = y1-y2
-        result = math.pow(math.pow(x1-x2,2)+math.pow(y1-y2,2),1/2)
+        resultx = x1-x2
+        resulty = y1-y2
+        # result = math.pow(math.pow(x1-x2,2)+math.pow(y1-y2,2),1/2)
         # print(f'result X,Y {resultx,resulty}')
-        # if (resultx<=3 and resultx>=-3 and resulty<=3 and resulty>=-3):
-        if(result<=20 and result>=-20):
+        if (resultx<=5 and resultx>=-5 and resulty<=5 and resulty>=-5):
+        # if(result<=5 and result>=-5):
             con = con+1
+            KPoriginOK.append((x1,y2))
+            KPmatches.append((x2,y2))
         else:
-            noc = noc+1 
+            noc = noc+1
+    matches(KPoriginOK,KPmatches,img1) 
     print(f'con {con}')
     print(f'noc {noc}')
+    KPoriginOK.clear()
+    KPmatches.clear()
+
     generatePercent(con)
 
-# def matches(trasnform,keypoints_surf1):
+def matches(KPmatchO,KPmatchT,img1):
+    for i,j in zip(KPmatchO,KPmatchT):
+        xy = (i[0],i[1])
+        xyB = (j[0],j[1])
+        print(f'KPmatchO {i}')
+        print(f'KPmatchT {j}')
+
+    #     coordsA = "dataA"
+    #     coordsB = "dataB"
+    #     con = ConnectionPatch(xyA=xy, xyB=xyB, coordsA=coordsA, coordsB=coordsB,
+    #     axesA=ax2, axesB=ax1,
+    #     arrowstyle="-", shrinkB=5)
+
+    #     ax2.add_artist(con)
+    # plt.show()
+
 #     # bf = cv2.BFMatcher(cv2.NORM_L2,crossCheck=True)
 #     # matches = bf.match(descriptors0,descriptors1)
 #     # matches = sorted(matches, key = lambda x:x.distance)
@@ -206,9 +228,9 @@ def setImgDisplacement():
 
 def displacement(surf,img0,transform,posX,posY):
     (h,w) = img0.shape[:2]
-
     m = numpy.float32([[1,0,posX],[0,1,posY]])
-    img1 = cv2.warpAffine(img0, m,(h + posX, w + posY))
+    newO = cv2.copyMakeBorder(img0, int(posY), int(posY),int(posX), int(posX), cv2.BORDER_CONSTANT, value=None)
+    img1 = cv2.warpAffine(new0, m,(h + posX, w + posY))
     surfApplication(surf,img1,transform)
 
     return str(posX)+","+str(posY)
