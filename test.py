@@ -67,7 +67,7 @@ def matches(KPT,KPmatchO,KPmatchT,img1):
 
         con = ConnectionPatch(xyA=xyB, xyB=xyA, coordsA=coordsA, coordsB=coordsB,
             axesA=ax2, axesB=ax1,
-            arrowstyle="-",color='red', shrinkB=5)
+            arrowstyle="-", shrinkB=5)
         ax2.add_artist(con)
 
 def generatePercent(match):
