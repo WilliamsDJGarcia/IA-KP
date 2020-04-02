@@ -6,31 +6,48 @@ from tkinter import filedialog
 from tkinter import ttk
 import matplotlib.pyplot as plt
 
-def surfApplication(surf,img1,trasnform): 
+def surfApplication(surf,img1,Origintrasnform): 
+    matches = []
+    bestMatch = []
     con=0
     noc=0
 
     keypoints_surf1, descriptors1 = surf.detectAndCompute(img1, None)
 
-    for j,k in zip(trasnform,range(len(keypoints_surf1[:100]))):
-        resultx = keypoints_surf1[k].pt[0]-j[0]
-        resulty = keypoints_surf1[k].pt[1]-j[1]
-        # result = math.pow(math.pow(j[0]-keypoints_surf1[k].pt[0],2)+math.pow(j[1]-keypoints_surf1[k].pt[1],2),1/2)
+    for j,k in zip(Origintrasnform,range(len(keypoints_surf1[:100]))):
+        x1 = j[0]
+        y1 = j[1]
+        x2 = keypoints_surf1[k].pt[0]
+        y2 = keypoints_surf1[k].pt[1]
+        # resultx = x1-x2
+        # resulty = y1-y2
+        result = math.pow(math.pow(x1-x2,2)+math.pow(y1-y2,2),1/2)
         # print(f'result X,Y {resultx,resulty}')
-        if ((resultx <= 2 and resultx >=-2) and (resulty <= 2 and resulty >=-2)):
+        # if (resultx<=3 and resultx>=-3 and resulty<=3 and resulty>=-3):
+        if(result<=20 and result>=-20):
             con = con+1
         else:
             noc = noc+1 
-    generatePercent(con)
     print(f'con {con}')
     print(f'noc {noc}')
+    generatePercent(con)
 
 # def matches(trasnform,keypoints_surf1):
 #     # bf = cv2.BFMatcher(cv2.NORM_L2,crossCheck=True)
 #     # matches = bf.match(descriptors0,descriptors1)
 #     # matches = sorted(matches, key = lambda x:x.distance)
 #     # match = len(matches)
-
+# for i in originalesAmanita:
+#             for j in keypointsT:
+#                 result=pow(pow(j[0]-i[0],2)+pow(j[1]-i[1],2),1/2)
+#                 if(result<=3 and result>=-3):
+#                     acertado.append(result)
+#                     coincidenciasO.append(keypointsO[contador])
+#                     coincidenciasT.append(j)
+                    
+#                 else:
+#                     fallidos.append(result)
+#             contador=contador+1
 #     # generatePercent(match)
 
 def generatePercent(match):
@@ -70,30 +87,26 @@ def setImgRotation():
 def setImgScale():
     global img0
     global oneHundred
-    sizes = []
+    sizes = [0.25,0.5,1,2,4]
     transform = []
 
     img0 = datoImage()
-    img1 = cv2.resize(img0, (int(img0.shape[1]/2), int(img0.shape[0]/2)))
-    img2 = cv2.resize(img1, (int(img1.shape[1]/2), int(img1.shape[0]/2)))
-    img3 = cv2.resize(img0, (int(img0.shape[1]*1.5), int(img0.shape[0]*1.5)))
-    img4 = cv2.resize(img0, (int(img0.shape[1]*2), int(img0.shape[0]*2)))
-
-    sizes.append(img1)
-    sizes.append(img2)
-    sizes.append(img3)
-    sizes.append(img4)
    
     surf = cv2.xfeatures2d.SURF_create(300)
     
     keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
     # oneHundred = len(keypoints_surf0)
     # generatePercent(oneHundred)
-    for i in sizes:
-        transform = transformOriginal(keypoints_surf0,center,(2,0))
-        surfApplication(surf,i,transform[:100])
 
-    # graph(X)
+    for i in sizes:
+        width = int(img0.shape[1] * i )
+        height = int(img0.shape[0] * i)
+        dim = (width, height)
+        img1 = cv2.resize(img0,dim,interpolation=cv2.INTER_AREA)
+        transform = transformOriginal(keypoints_surf0,i,(2,0))
+        surfApplication(surf,img1,transform[:100])
+        transform.clear()
+    graph(X)
 
 def setImgDisplacement():
     global img0
@@ -204,7 +217,9 @@ def transformOriginal(keypoints_surf0,param,val):
     transform=[]
     if val[0] == 0:
         for i in range(len(keypoints_surf0)):
-            x,y = keypoints_surf0[i].pt
+            x = keypoints_surf0[i].pt[0]
+            y = keypoints_surf0[i].pt[1]
+
             rotatedX = math.cos(val[1]) * (x - param[0]) - math.sin(val[1]) * (y - param[1]) + param[0]
             rotatedY = math.sin(val[1]) * (x - param[0]) + math.cos(val[1]) * (y - param[1]) + param[1]
             
@@ -214,7 +229,9 @@ def transformOriginal(keypoints_surf0,param,val):
         xi=param[0]
         yi=param[1]
         for i in range(len(keypoints_surf0)):
-           x,y = keypoints_surf0[i].pt
+           x = keypoints_surf0[i].pt[0]
+           y = keypoints_surf0[i].pt[1]
+
         #    print(f'valor original x,y {x,y}')
            displacementX = x + xi
            displacementY = y + yi
@@ -223,13 +240,15 @@ def transformOriginal(keypoints_surf0,param,val):
         #    print(f"TRANSFORMADOS {displacement}")
            transform.append(displacement)
     if val[0] == 2:
-        print(f"AQUÍ VAN LOS TRANSFORMADOS DE REDIMENSION")
-        # for i in range(len(keypoints_surf0)):
-            # x,y = keypoints_surf0[i].pt
-            # newX = x
+        for i in range(len(keypoints_surf0)):
+            x = keypoints_surf0[i].pt[0]
+            y = keypoints_surf0[i].pt[1]
+
+            newX = x * param
+            newY = y * param
             
-            # rotated = rotatedX,rotatedY
-            # transform.append(rotated)
+            new = newX,newY
+            transform.append(new)
     return transform
 
 def graph(x):
@@ -242,7 +261,6 @@ def graph(x):
     ax1.set_title('Comparative graph of the original with results')
     ax1.legend()
     plt.ylim(0, 100)
-    original.clear()
     percent.clear()
     plt.show()
 
@@ -281,7 +299,7 @@ if __name__ == '__main__':
     original = []
     original.append(oneHundred)
     percent = []
-    X = ['1/4','1/16','2X','4X']
+    X = ['1/16','1/4','1','2X','4X']
     O = ['Original']
 
     path = Tk()
