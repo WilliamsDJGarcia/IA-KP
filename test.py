@@ -14,24 +14,23 @@ def surfApplication(surf,img1,Origintrasnform):
     noc=0
 
     keypoints_surf1, descriptors1 = surf.detectAndCompute(img1, None)
+    KPT = keypoints_surf1[:100]
 
-    for j,k in zip(Origintrasnform,range(len(keypoints_surf1[:100]))):
+    for j,k in zip(Origintrasnform,range(len(KPT))):
         x1 = j[0]
         y1 = j[1]
-        x2 = keypoints_surf1[k].pt[0]
-        y2 = keypoints_surf1[k].pt[1]
+        x2 = KPT[k].pt[0]
+        y2 = KPT[k].pt[1]
         resultx = x1-x2
         resulty = y1-y2
-        # result = math.pow(math.pow(x1-x2,2)+math.pow(y1-y2,2),1/2)
-        # print(f'result X,Y {resultx,resulty}')
+
         if (resultx<=5 and resultx>=-5 and resulty<=5 and resulty>=-5):
-        # if(result<=5 and result>=-5):
             con = con+1
             KPoriginOK.append((x1,y2))
             KPmatches.append((x2,y2))
         else:
             noc = noc+1
-    matches(KPoriginOK,KPmatches,img1) 
+    matches(KPT,KPoriginOK,KPmatches,img1) 
     print(f'con {con}')
     print(f'noc {noc}')
     KPoriginOK.clear()
@@ -39,38 +38,37 @@ def surfApplication(surf,img1,Origintrasnform):
 
     generatePercent(con)
 
-def matches(KPmatchO,KPmatchT,img1):
-    for i,j in zip(KPmatchO,KPmatchT):
-        xy = (i[0],i[1])
-        xyB = (j[0],j[1])
-        print(f'KPmatchO {i}')
-        print(f'KPmatchT {j}')
+def matches(KPT,KPmatchO,KPmatchT,img1):
+    global img0   
+    global KPorigin
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+    ax1.imshow(img0)
+    ax2.imshow(img1)
+    ax1.title.set_text("Imagen original")
+    ax2.title.set_text("Resultado")
+    coordsA = "data"
+    coordsB = "data"
 
-    #     coordsA = "dataA"
-    #     coordsB = "dataB"
-    #     con = ConnectionPatch(xyA=xy, xyB=xyB, coordsA=coordsA, coordsB=coordsB,
-    #     axesA=ax2, axesB=ax1,
-    #     arrowstyle="-", shrinkB=5)
+    for i,j in zip(range(len(KPorigin)),range(len(KPT))):
+        xO,yO = KPorigin[i].pt
+        xT,yT = KPT[j].pt
 
-    #     ax2.add_artist(con)
-    # plt.show()
+        c = plt.Circle((xT, yT), 0.99, color='red', linewidth=2, fill=False)
+        ax2.add_patch(c)
 
-#     # bf = cv2.BFMatcher(cv2.NORM_L2,crossCheck=True)
-#     # matches = bf.match(descriptors0,descriptors1)
-#     # matches = sorted(matches, key = lambda x:x.distance)
-#     # match = len(matches)
-# for i in originalesAmanita:
-#             for j in keypointsT:
-#                 result=pow(pow(j[0]-i[0],2)+pow(j[1]-i[1],2),1/2)
-#                 if(result<=3 and result>=-3):
-#                     acertado.append(result)
-#                     coincidenciasO.append(keypointsO[contador])
-#                     coincidenciasT.append(j)
-                    
-#                 else:
-#                     fallidos.append(result)
-#             contador=contador+1
-#     # generatePercent(match)
+        c2 = plt.Circle((xO, yO),0.99, color='red', linewidth=2, fill=False)
+        ax1.add_patch(c2)
+
+    for k,l in zip(range(len(KPmatchO)),range(len(KPmatchT))):
+        xyA =  (KPmatchO[k][0],KPmatchO[k][1])
+        xyB =  (KPmatchT[l][0],KPmatchT[l][1])
+        print(f'X {KPmatchO[k][0]} , Y {KPmatchO[k][1]}')
+        print(f'X2 {KPmatchT[l][0]} , Y2 {KPmatchT[l][1]}')
+
+        con = ConnectionPatch(xyA=xyB, xyB=xyA, coordsA=coordsA, coordsB=coordsB,
+            axesA=ax2, axesB=ax1,
+            arrowstyle="-",color='red', shrinkB=5)
+        ax2.add_artist(con)
 
 def generatePercent(match):
     z = (match*100)/oneHundred
@@ -92,6 +90,7 @@ def setImgRotation():
     surf = cv2.xfeatures2d.SURF_create(500)
     
     keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
+    KPorigin = keypoints_surf0[:100]
     # oneHundred = len(keypoints_surf0)
     # generatePercent(oneHundred)
     while(count<=finalGrade):
@@ -117,6 +116,7 @@ def setImgScale():
     surf = cv2.xfeatures2d.SURF_create(300)
     
     keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
+    KPorigin = keypoints_surf0[:100]
     # oneHundred = len(keypoints_surf0)
     # generatePercent(oneHundred)
 
@@ -146,6 +146,7 @@ def setImgDisplacement():
     surf = cv2.xfeatures2d.SURF_create(300)
    
     keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
+    KPorigin = keypoints_surf0[:100]
     # oneHundred = len(keypoints_surf0)
     # generatePercent(oneHundred)
 
@@ -229,8 +230,7 @@ def setImgDisplacement():
 def displacement(surf,img0,transform,posX,posY):
     (h,w) = img0.shape[:2]
     m = numpy.float32([[1,0,posX],[0,1,posY]])
-    newO = cv2.copyMakeBorder(img0, int(posY), int(posY),int(posX), int(posX), cv2.BORDER_CONSTANT, value=None)
-    img1 = cv2.warpAffine(new0, m,(h + posX, w + posY))
+    img1 = cv2.warpAffine(img0, m,(h + posX, w + posY))
     surfApplication(surf,img1,transform)
 
     return str(posX)+","+str(posY)
@@ -254,12 +254,10 @@ def transformOriginal(keypoints_surf0,param,val):
            x = keypoints_surf0[i].pt[0]
            y = keypoints_surf0[i].pt[1]
 
-        #    print(f'valor original x,y {x,y}')
            displacementX = x + xi
            displacementY = y + yi
 
            displacement = displacementX,displacementY
-        #    print(f"TRANSFORMADOS {displacement}")
            transform.append(displacement)
     if val[0] == 2:
         for i in range(len(keypoints_surf0)):
@@ -284,6 +282,7 @@ def graph(x):
     ax1.legend()
     plt.ylim(0, 100)
     percent.clear()
+    KPorigin.clear()
     plt.show()
 
 def datoImage():
@@ -321,6 +320,7 @@ if __name__ == '__main__':
     original = []
     original.append(oneHundred)
     percent = []
+    KPorigin = []
     X = ['1/16','1/4','1','2X','4X']
     O = ['Original']
 
