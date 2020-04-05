@@ -24,7 +24,7 @@ def surfApplication(surf,img1,Origintrasnform):
         resultx = x1-x2
         resulty = y1-y2
 
-        if (resultx<=3 and resultx>=-3 and resulty<=3 and resulty>=-3):
+        if (resultx<=5 and resultx>=-5 and resulty<=5 and resulty>=-5):
             con = con+1
             KPoriginOK.append(KPorigin[count])
             KPmatches.append(k)
@@ -320,3 +320,23 @@ def menuOptions():
     path.mainloop()
 
 if __name__ == '__main__':
+    grades = 360
+    scale = 1.0
+    oneHundred = 100
+    img0 = None
+    arrayImg = []
+    original = []
+    original.append(oneHundred)
+    percent = []
+    KPorigin = []
+    X = ['1/16','1/4','1','2X','4X']
+    O = ['Original']
+
+    path = Tk()
+    path.configure(bg = 'azure')
+    path.title('SURF')
+    ValueX = StringVar()
+    ValueY = StringVar()
+    ValueG = StringVar()
+    datoI = StringVar()
+    menuOptions()
