@@ -1,219 +1,233 @@
 import cv2
-import numpy
+import numpy as np
+import imutils
+import random
 from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 import matplotlib.pyplot as plt
+from matplotlib.patches import ConnectionPatch
 
-def surfApplication(surf,img1,trasnform): 
-    global img0
+def surfApplication(surf,img1,Origintrasnform): 
+    global KPorigin
+    KPmatches = []
+    KPoriginOK = []
     con=0
     noc=0
+    count = 0
+    kp2 = surf.detect(img1,None)
 
-    keypoints_surf1, descriptors1 = surf.detectAndCompute(img1, None)
+    for j in Origintrasnform:
+        for k in kp2:
+            x1 = j.pt[0]
+            y1 = j.pt[1]
+            x2 = k.pt[0]
+            y2 = k.pt[1]
+            resultx = x1-x2
+            resulty = y1-y2
 
-    for j,k in zip(trasnform,range(len(keypoints_surf1))):
-        resultx = keypoints_surf1[k].pt[0]-j[0]
-        resulty = keypoints_surf1[k].pt[1]-j[1]
-        if ((resultx <= 2 and resultx >=-2) and (resulty <= 2 and resulty >=-2)):
-            con = con+1
-        else:
-            noc = noc+1 
-    print(f'con {con}')
-    print(f'noc {noc}')
+            if (resultx<=2 and resultx>=-2 and resulty<=2 and resulty>=-2):
+                con = con+1
+                KPoriginOK.append(KPorigin[count])
+                KPmatches.append(k)
+                break
+            else:
+                noc = noc+1
+        count = count+1
+    print(f'coinciden {con}')
+    print(f'NO coinciden {noc}')
 
-# def matches(trasnform,keypoints_surf1):
-#     # bf = cv2.BFMatcher(cv2.NORM_L2,crossCheck=True)
-#     # matches = bf.match(descriptors0,descriptors1)
-#     # matches = sorted(matches, key = lambda x:x.distance)
-#     # match = len(matches)
+    print(f'tamaño seleccionados {len(Origintrasnform)}')
+    print(f'Img transformada {len(kp2)}')
 
-#     # generatePercent(match)
+    drawMatches(KPoriginOK,KPmatches,img1)
+    KPoriginOK.clear()
+    KPmatches.clear()
+
+    generatePercent(con)
+
+def drawMatches(KPmatchO,KPmatchT,img1):
+    global img0
+    
+    img = cv2.drawKeypoints(img0, KPmatchO,None, color=(0,255,0))
+    img2 = cv2.drawKeypoints(img1, KPmatchT,None, color=(0,255,0))
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+    ax1.imshow(img)
+    ax2.imshow(img2)
+    ax1.title.set_text("Imagen original")
+    ax2.title.set_text("Resultado")
+    coordsA = "data"
+    coordsB = "data"
+
+    for k,l in zip(range(len(KPmatchO)),range(len(KPmatchT))):
+        xyA =  (KPmatchO[k].pt[0],KPmatchO[k].pt[1])
+        xyB =  (KPmatchT[l].pt[0],KPmatchT[l].pt[1])
+
+        color = (random.uniform(0,1),random.uniform(0,1),random.uniform(0,1))
+
+        con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA=coordsA, coordsB=coordsB,
+            axesA=ax1, axesB=ax2,
+            arrowstyle="-",color=color, shrinkB=5)
+        ax2.add_artist(con)
 
 def generatePercent(match):
     z = (match*100)/oneHundred
-    if z == 100.0:
-        original.append(z)
-    else:
-        percent.append(z)
+    percent.append(z)
 
 def setImgRotation():
     global img0
-    global oneHundred
+    global KPorigin
 
     xs = []
     transform = []
-    grade = int(ValueG.get()) 
-    count= grade
-    finalGrade=grades-grade
-
-    img0 = datoImage() 
-    (h,w) = img0.shape[:2]
-    center = (w/2,h/2)
-    surf = cv2.xfeatures2d.SURF_create(300)
     
-    keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
-    transform = transformOriginal(keypoints_surf0,center,0)
-    # oneHundred = len(keypoints_surf0)
-    # generatePercent(oneHundred)
-    while(count<=finalGrade):
+    grade = int(ValueG.get())
+    count = grade
+
+    img0 = datoImage()
+    (row,col) = img0.shape[:2]
+
+    if (row!=col):
+        imgNew = cv2.resize(img0,(row,col),1)
+        img0=imgNew
+        pass
+
+    surf = cv2.xfeatures2d.SURF_create(500)
+    KPorigin = surf.detect(img0,None)
+    
+    while(count < 360):
         xs.append(str(count))
-        m = cv2.getRotationMatrix2D(center,count,1.0)
-        img1 = cv2.warpAffine(img0, m, (h, w))
-        print(f'GRADOS {count}')
-        surfApplication(surf,img1,transform)
-        count = count +grade
- 
-    # graph(xs)
+
+        img1 = imutils.rotate_bound(img0, count)
+        
+        kp1 = surf.detect(img0,None)
+
+        (heigt,width) = img0.shape[:2]
+        (heigt1,width1)= img1.shape[:2]
+
+        transform = transformOriginal(kp1,(heigt,width,heigt1,width1),(0,count))
+        surfApplication(surf,img1,transform[:100])
+        transform.clear()
+
+        count = count + grade
+    graph(xs)
 
 def setImgScale():
     global img0
-    global oneHundred
-    sizes = []
+    global KPorigin
+
+    sizes = [0.25,0.5,1,2,4]
+    transform = []
 
     img0 = datoImage()
-    img1 = cv2.resize(img0, (int(img0.shape[1]/2), int(img0.shape[0]/2)))
-    img2 = cv2.resize(img1, (int(img1.shape[1]/2), int(img1.shape[0]/2)))
-    img3 = cv2.resize(img0, (int(img0.shape[1]*1.5), int(img0.shape[0]*1.5)))
-    img4 = cv2.resize(img0, (int(img0.shape[1]*2), int(img0.shape[0]*2)))
+    (row,col) = img0.shape[:2]
 
-    sizes.append(img1)
-    sizes.append(img2)
-    sizes.append(img3)
-    sizes.append(img4)
+    if (row!=col):
+        imgNew = cv2.resize(img0,(row,col),1)
+        img0=imgNew
+        pass
    
     surf = cv2.xfeatures2d.SURF_create(300)
     
-    keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
-    # oneHundred = len(keypoints_surf0)
-    # generatePercent(oneHundred)
+    KPorigin = surf.detect(img0, None)
+   
     for i in sizes:
-        surfApplication(surf,i,descriptors0)
-
-    # graph(X)
+        kp1 = surf.detect(img0,None)
+        width = int(img0.shape[1] * i )
+        height = int(img0.shape[0] * i)
+        dim = (width, height)
+        img1 = cv2.resize(img0,dim,interpolation=cv2.INTER_AREA)
+        transform = transformOriginal(kp1,i,(2,0))
+        surfApplication(surf,img1,transform[:100])
+        transform.clear()
+    graph(X)
 
 def setImgDisplacement():
     global img0
-    global oneHundred
+    global KPorigin
+
     transform = []
     cardinal_points = []
-    count = 0
     posX=0
     posY=0
     posXi = int(ValueX.get())
     posYi = int(ValueY.get())
+    directions = [(0,posYi),(-posXi,posYi),(-posXi,0),(-posXi,-posYi),(0,-posYi),(posXi,-posYi),(posXi,0),(posXi,posYi)]
 
-    img0 = datoImage()
+    img = datoImage()
+    (row,col) = img.shape[:2]
+
+    if (row!=col):
+        imgNew = cv2.resize(img,(row,col),1)
+        img0 = cv2.copyMakeBorder(imgNew,posYi,posYi,posXi,posXi,cv2.BORDER_CONSTANT)
+        pass
+    else:
+        img0= cv2.copyMakeBorder(img,posYi,posYi,posXi,posXi,cv2.BORDER_CONSTANT)
 
     surf = cv2.xfeatures2d.SURF_create(300)
    
-    keypoints_surf0, descriptors0 = surf.detectAndCompute(img0, None)
-    transform = transformOriginal(keypoints_surf0,(posXi,posYi),1)
-    # oneHundred = len(keypoints_surf0)
-    # generatePercent(oneHundred)
+    KPorigin = surf.detect(img0, None)
 
-    while(count<=7):
-        if count == 0:
-            posX = 0
-            posY = posYi
+    for i in directions:
+        kp1 = surf.detect(img0,None)
+        posX = i[0]
+        posY = i[1]
 
-            north = displacement(surf,img0,transform,posX,posY)
-            cardinal_points.append(north)
+        transform = transformOriginal(kp1,(posX,posY),(1,0))
+        point = displacement(surf,img0,transform[:100],posX,posY)
+        cardinal_points.append(point)
+        transform.clear()  
+    graph(cardinal_points)
 
-            count= count+1
-        if count == 1:
-            posX = -posXi
-            posY = posYi
-
-            northWest = displacement(surf,img0,transform,posX,posY)
-            cardinal_points.append(northWest)
-
-            count= count+1
-        if count == 2:
-            posX = -posXi
-            posY = 0
-
-            west = displacement(surf,img0,transform,posX,posY)
-            cardinal_points.append(west)
-            
-            count= count+1
-        if count == 3:
-            posX = -posXi
-            posY = -posYi
-
-            southWest = displacement(surf,img0,transform,posX,posY)
-            cardinal_points.append(southWest)
-
-            count= count+1
-        if count == 4:
-            posX = 0
-            posY = -posYi
-
-            south = displacement(surf,img0,transform,posX,posY)
-            cardinal_points.append(south)
-
-            count= count+1
-        if count == 5:
-            posX = posXi
-            posY = -posYi
-            
-            southEast = displacement(surf,img0,transform,posX,posY)
-            cardinal_points.append(southEast)
-            
-            count= count+1
-        if count == 6:
-            posX = posXi
-            posY = 0
-
-            east = displacement(surf,img0,transform,posX,posY)
-            cardinal_points.append(east)
-
-            count= count+1 
-        if count == 7:
-            posX = posXi
-            posY = posYi
-
-            northEast = displacement(surf,img0,transform,posX,posY)
-            cardinal_points.append(northEast)
-    
-            count= count+1 
-    print("ACABO")
-    
-    # graph(cardinal_points)
-
-def displacement(surf,img0,transform,posX,posY):
-    (h,w) = img0.shape[:2]
-
-    m = numpy.float32([[1,0,posX],[0,1,posY]])
-    img1 = cv2.warpAffine(img0, m,(h + posX, w + posY))
+def displacement(surf,img,transform,posX,posY):
+    (h,w) = img.shape[:2]
+    m = np.float32([[1,0,posX],[0,1,posY]])
+    img1 = cv2.warpAffine(img, m,(h,w))
     surfApplication(surf,img1,transform)
 
     return str(posX)+","+str(posY)
 
 def transformOriginal(keypoints_surf0,param,val):
     transform=[]
-    if val == 0:
-        for i in range(len(keypoints_surf0)):
-            x,y = keypoints_surf0[i].pt
-            rotatedX = math.cos(15) * (x - param[0]) - math.sin(15) * (y - param[1]) + param[0]
-            rotatedY = math.sin(15) * (x - param[0]) + math.cos(15) * (y - param[1]) + param[1]
+    if val[0] == 0:
+        center = (param[3]/2,param[2]/2) 
+        dify = (param[2]-param[0])/2  
+        difx = (param[3]-param[1])/2  
+        grade = np.radians(val[1])
+        
+        for i in keypoints_surf0:
+            x = round(i.pt[0]+difx,4)
+            y = round(i.pt[1]+dify,4)
 
+            rotatedX = np.cos(grade) * (x - center[0]) - np.sin(grade) * (y - center[1]) + center[0]
+            rotatedY = np.sin(grade) * (x - center[0]) + np.cos(grade) * (y - center[1]) + center[1]
+            
             rotated = rotatedX,rotatedY
-            transform.append(rotated)
-    if val == 1:
+            i.pt = rotated
+    if val[0] == 1:
         xi=param[0]
         yi=param[1]
-        for i in range(len(keypoints_surf0)):
-           x,y = keypoints_surf0[i].pt
-           print(f'valor original x,y {x,y}')
+        for i in keypoints_surf0:
+           x = i.pt[0]
+           y = i.pt[1]
+
            displacementX = x + xi
            displacementY = y + yi
 
            displacement = displacementX,displacementY
-           print(f"TRANSFORMADOS {displacement}")
-           transform.append(displacement)
-#    if val == 2:
-    return transform
+           i.pt = displacement
+    if val[0] == 2:
+        for i in keypoints_surf0:
+            x = i.pt[0]
+            y = i.pt[1]
+
+            newX = x * param
+            newY = y * param
+            
+            new = newX,newY
+            i.pt = new
+    return keypoints_surf0
 
 def graph(x):
     fig, (ax1) = plt.subplots(nrows=1, ncols=1)
@@ -225,8 +239,8 @@ def graph(x):
     ax1.set_title('Comparative graph of the original with results')
     ax1.legend()
     plt.ylim(0, 100)
-    original.clear()
     percent.clear()
+    KPorigin.clear()
     plt.show()
 
 def datoImage():
@@ -258,11 +272,13 @@ def menuOptions():
 if __name__ == '__main__':
     grades = 360
     scale = 1.0
-    oneHundred = 0
+    oneHundred = 100
     img0 = None
     original = []
+    original.append(oneHundred)
     percent = []
-    X = ['1/4','1/16','2X','4X']
+    KPorigin = []
+    X = ['1/16','1/4','1','2X','4X']
     O = ['Original']
 
     path = Tk()
