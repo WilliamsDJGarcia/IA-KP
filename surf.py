@@ -8,7 +8,7 @@ from tkinter import ttk
 import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
 
-def surfApplication(surf,img1,Origintrasnform): 
+def surfApplication(surf,img1,Origintrasnform):
     global KPorigin
     KPmatches = []
     KPoriginOK = []
@@ -23,10 +23,12 @@ def surfApplication(surf,img1,Origintrasnform):
             y1 = j.pt[1]
             x2 = k.pt[0]
             y2 = k.pt[1]
-            resultx = x1-x2
-            resulty = y1-y2
-
-            if (resultx<=2 and resultx>=-2 and resulty<=2 and resulty>=-2):
+            resultx = x2-x1
+            resulty = y2-y1
+            
+            result=pow(pow(resultx,2)+pow(resulty,2),1/2)
+            
+            if (result <=2 and result >=-2):
                 con = con+1
                 KPoriginOK.append(KPorigin[count])
                 KPmatches.append(k)
@@ -34,12 +36,7 @@ def surfApplication(surf,img1,Origintrasnform):
             else:
                 noc = noc+1
         count = count+1
-    print(f'coinciden {con}')
-    print(f'NO coinciden {noc}')
-
-    print(f'tamaño seleccionados {len(Origintrasnform)}')
-    print(f'Img transformada {len(kp2)}')
-
+        
     drawMatches(KPoriginOK,KPmatches,img1)
     KPoriginOK.clear()
     KPmatches.clear()

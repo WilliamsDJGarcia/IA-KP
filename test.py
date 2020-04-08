@@ -1,13 +1,14 @@
 import cv2
 import numpy as np
 import imutils
+import random
 from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
 
-def surfApplication(surf,img1,Origintrasnform): 
+def surfApplication(surf,img1,Origintrasnform):
     global KPorigin
     KPmatches = []
     KPoriginOK = []
@@ -16,25 +17,31 @@ def surfApplication(surf,img1,Origintrasnform):
     count = 0
     kp2 = surf.detect(img1,None)
 
-    for j,k in zip(Origintrasnform,kp2[:100]):
-        x1 = j.pt[0]
-        y1 = j.pt[1]
-        x2 = k.pt[0]
-        y2 = k.pt[1]
-        resultx = x1-x2
-        resulty = y1-y2
-
-        if (resultx<=5 and resultx>=-5 and resulty<=5 and resulty>=-5):
-            con = con+1
-            KPoriginOK.append(KPorigin[count])
-            KPmatches.append(k)
-        else:
-            noc = noc+1
+    for j in Origintrasnform:
+        for k in kp2:
+            x1 = j.pt[0]
+            y1 = j.pt[1]
+            x2 = k.pt[0]
+            y2 = k.pt[1]
+            resultx = x2-x1
+            resulty = y2-y1
+            
+            result=pow(pow(resultx,2)+pow(resulty,2),1/2)
+            
+            if (result <=2 and result >=-2):
+                con = con+1
+                KPoriginOK.append(KPorigin[count])
+                KPmatches.append(k)   
+            else:
+                noc = noc+1
         count = count+1
+    print(f'coinciden {con}')
+    print(f'NO coinciden {noc}')
 
-    drawMatches(KPoriginOK,KPmatches,img1) 
-    print(f'con {con}')
-    print(f'noc {noc}')
+    print(f'tamaño seleccionados {len(Origintrasnform)}')
+    print(f'Img transformada {len(kp2)}')
+    print("--------------------------------------------------")
+    drawMatches(KPoriginOK,KPmatches,img1)
     KPoriginOK.clear()
     KPmatches.clear()
 
@@ -42,7 +49,7 @@ def surfApplication(surf,img1,Origintrasnform):
 
 def drawMatches(KPmatchO,KPmatchT,img1):
     global img0
-    
+   
     img = cv2.drawKeypoints(img0, KPmatchO,None, color=(0,255,0))
     img2 = cv2.drawKeypoints(img1, KPmatchT,None, color=(0,255,0))
 
@@ -57,13 +64,12 @@ def drawMatches(KPmatchO,KPmatchT,img1):
     for k,l in zip(range(len(KPmatchO)),range(len(KPmatchT))):
         xyA =  (KPmatchO[k].pt[0],KPmatchO[k].pt[1])
         xyB =  (KPmatchT[l].pt[0],KPmatchT[l].pt[1])
-        
-        # print(f'X {KPmatchO[k].pt[0]} , Y {KPmatchO[k].pt[1]}')
-        # print(f'X2 {KPmatchT[l].pt[0]} , Y2 {KPmatchT[l].pt[1]}')
+
+        color = (random.uniform(0,1),random.uniform(0,1),random.uniform(0,1))
 
         con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA=coordsA, coordsB=coordsB,
             axesA=ax1, axesB=ax2,
-            arrowstyle="-",color="red", shrinkB=5)
+            arrowstyle="-",color=color, shrinkB=5)
         ax2.add_artist(con)
 
 def generatePercent(match):
@@ -93,9 +99,9 @@ def setImgRotation():
     
     while(count < 360):
         xs.append(str(count))
-
-        img1 = imutils.rotate_bound(img0, count)
         
+        img1 = imutils.rotate_bound(img0, count)
+
         kp1 = surf.detect(img0,None)
 
         (heigt,width) = img0.shape[:2]
@@ -144,103 +150,35 @@ def setImgDisplacement():
 
     transform = []
     cardinal_points = []
-    count = 0
     posX=0
     posY=0
     posXi = int(ValueX.get())
     posYi = int(ValueY.get())
+    directions = [(0,posYi),(-posXi,posYi),(-posXi,0),(-posXi,-posYi),(0,-posYi),(posXi,-posYi),(posXi,0),(posXi,posYi)]
 
     img = datoImage()
+    (row,col) = img.shape[:2]
 
-    img0 = cv2.copyMakeBorder(img,posYi,posYi,posXi,posXi,cv2.BORDER_CONSTANT)
+    if (row!=col):
+        imgNew = cv2.resize(img,(row,col),1)
+        img0 = cv2.copyMakeBorder(imgNew,posYi,posYi,posXi,posXi,cv2.BORDER_CONSTANT)
+        pass
+    else:
+        img0= cv2.copyMakeBorder(img,posYi,posYi,posXi,posXi,cv2.BORDER_CONSTANT)
 
     surf = cv2.xfeatures2d.SURF_create(300)
    
     KPorigin = surf.detect(img0, None)
 
-    while(count<=7):
-        if count == 0:
-            kp1 = surf.detect(img0,None)
-            posX = 0
-            posY = posYi
-            transform = transformOriginal(kp1,(posX,posY),(1,0))
-            north = displacement(surf,img0,transform[:100],posX,posY)
-            cardinal_points.append(north)
-            transform.clear()
-            
-            count= count+1
-        if count == 1:
-            kp1 = surf.detect(img0,None)
-            posX = -posXi
-            posY = posYi
-            transform = transformOriginal(kp1,(posX,posY),(1,0))
-            northWest = displacement(surf,img0,transform[:100],posX,posY)
-            cardinal_points.append(northWest)
-            transform.clear()
-            
-            count= count+1
-        if count == 2:
-            kp1 = surf.detect(img0,None)
-            posX = -posXi
-            posY = 0
-            transform = transformOriginal(kp1,(posX,posY),(1,0))
-            west = displacement(surf,img0,transform[:100],posX,posY)
-            cardinal_points.append(west)
-            transform.clear()
-            
-            count= count+1
-        if count == 3:
-            kp1 = surf.detect(img0,None)
-            posX = -posXi
-            posY = -posYi
-            transform = transformOriginal(kp1,(posX,posY),(1,0))
-            southWest = displacement(surf,img0,transform[:100],posX,posY)
-            cardinal_points.append(southWest)
-            transform.clear()
+    for i in directions:
+        kp1 = surf.detect(img0,None)
+        posX = i[0]
+        posY = i[1]
 
-            count= count+1
-        if count == 4:
-            kp1 = surf.detect(img0,None)
-            posX = 0
-            posY = -posYi
-            transform = transformOriginal(kp1,(posX,posY),(1,0))
-            south = displacement(surf,img0,transform[:100],posX,posY)
-            cardinal_points.append(south)
-            transform.clear()
-
-            count= count+1
-        if count == 5:
-            kp1 = surf.detect(img0,None)
-            posX = posXi
-            posY = -posYi
-            transform = transformOriginal(kp1,(posX,posY),(1,0))
-            southEast = displacement(surf,img0,transform[:100],posX,posY)
-            cardinal_points.append(southEast)
-            transform.clear()
-            
-            count= count+1
-        if count == 6:
-            kp1 = surf.detect(img0,None)
-            posX = posXi
-            posY = 0
-            transform = transformOriginal(kp1,(posX,posY),(1,0))
-            east = displacement(surf,img0,transform[:100],posX,posY)
-            cardinal_points.append(east)
-            transform.clear()
-
-            count= count+1
-        if count == 7:
-            kp1 = surf.detect(img0,None)
-            posX = posXi
-            posY = posYi
-            transform = transformOriginal(kp1,(posX,posY),(1,0))
-            northEast = displacement(surf,img0,transform[:100],posX,posY)
-            cardinal_points.append(northEast)
-            transform.clear()
-
-            count= count+1 
-    print("ACABO")
-    
+        transform = transformOriginal(kp1,(posX,posY),(1,0))
+        point = displacement(surf,img0,transform[:100],posX,posY)
+        cardinal_points.append(point)
+        transform.clear()  
     graph(cardinal_points)
 
 def displacement(surf,img,transform,posX,posY):
@@ -337,7 +275,6 @@ if __name__ == '__main__':
     scale = 1.0
     oneHundred = 100
     img0 = None
-    arrayImg = []
     original = []
     original.append(oneHundred)
     percent = []
